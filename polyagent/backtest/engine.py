@@ -64,6 +64,16 @@ class MarketRecord:
         i = bisect.bisect_right(tape, (t, float("inf"))) - 1
         return tape[i][1] if i >= 0 else None
 
+    def trades_between(self, lo: int, hi: int) -> list[Trade]:
+        """Trades with lo <= ts <= hi (sorted index built lazily)."""
+        idx = self.__dict__.get("_tidx")
+        if idx is None:
+            srt = sorted(self.trades, key=lambda tr: tr.ts)
+            idx = ([tr.ts for tr in srt], srt)
+            self.__dict__["_tidx"] = idx
+        ts, srt = idx
+        return srt[bisect.bisect_left(ts, lo):bisect.bisect_right(ts, hi)]
+
     def history_until(self, t: int) -> list[tuple[int, float]]:
         i = bisect.bisect_right(self.history, (t, float("inf")))
         return self.history[:i]
@@ -188,9 +198,8 @@ class Backtester:
             resolutions[m.yes_token] = m.outcome_yes
             resolutions[m.no_token] = 1 - m.outcome_yes
             res_ts[m.yes_token] = res_ts[m.no_token] = m.resolve_ts
-            for tr in m.trades:
-                if tr.ts <= t:
-                    by_wallet.setdefault(tr.wallet, []).append(tr)
+            for tr in m.trades_between(-1, t):
+                by_wallet.setdefault(tr.wallet, []).append(tr)
         scored = []
         for w, trs in by_wallet.items():
             if len(trs) < p.wallet_min_trades:
@@ -246,7 +255,7 @@ class Backtester:
                 continue
             if p.strategy == "smart_money":
                 weights = self.weights_at(t, p)
-                recent = [tr for tr in m.trades if t - 24 * 3600 <= tr.ts <= t]
+                recent = m.trades_between(t - 24 * 3600, t)
                 est = smart.estimate(price, m.yes_token, m.no_token, recent, weights) if weights else None
             else:
                 est = trend.estimate(m.history_until(t), t)
@@ -397,8 +406,8 @@ def flow_signal_study(bt: "Backtester", p: BTParams, smart_only: bool = True, st
                 t += step_hours * 3600
                 continue
             flow = 0.0
-            for tr in m.trades:
-                if t - lookback_hours * 3600 <= tr.ts <= t and (w is None or tr.wallet in w):
+            for tr in m.trades_between(t - lookback_hours * 3600, t):
+                if w is None or tr.wallet in w:
                     s = 1.0 if tr.side == "BUY" else -1.0
                     flow += (s if tr.token_id == m.yes_token else -s) * tr.size * tr.price
             price = m.price_at(t)
