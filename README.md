@@ -267,7 +267,15 @@ How it works (`polyagent/mm/`):
 
 **P&L = rewards + spread on merged sets − losses on unhedged inventory when prices move.**
 The first two terms are measurable now. The third only shows up over time and is the one that
-kills market makers. MM_RESULTS_PLACEHOLDER
+kills market makers.
+
+**First paper run (2026-11-03, 50 minutes, $1,000 bankroll, ~$800 quoted across 5 markets):**
+$2.38 of rewards accrued (a ~$69/day run rate, still an estimate until a daily credit).
+1 fill: 81 NO shares at 60¢, marked −$0.41. Net about +$2 including accrued rewards.
+Fifty minutes says nothing about adverse selection: there was no big news while it ran. The
+number that matters is the P&L after a few weeks that include news shocks. Note also that
+80% of the accrual came from two thin $50/day pools where the bot was the main quoter, so
+the estimate will drop as soon as anyone competes.
 
 Approximations to keep in mind:
 

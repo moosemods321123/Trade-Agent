@@ -131,6 +131,14 @@ class MarketMaker:
         if now - self.last_select > self.cfg.mm_reselect_minutes * 60 and not kill:
             self.select_markets(now)
         books = self._books()
+        if books:  # lets the dashboard mark inventory
+            self.db.executemany(
+                "INSERT INTO book_snapshots(token_id,ts,best_bid,best_ask,bid_depth,ask_depth) VALUES(?,?,?,?,?,?)",
+                [(t, now, b.best_bid, b.best_ask, sum(x for _, x in b.bids[:5]), sum(x for _, x in b.asks[:5]))
+                 for t, b in books.items()]
+                + [(mm.market.no_token, now, 1 - b.best_ask if b.best_ask is not None else None,
+                    1 - b.best_bid if b.best_bid is not None else None, None, None)
+                   for mm in self.markets.values() if (b := books.get(mm.market.yes_token))])
         self.process_tape(now)
         self.merge_sets()
         if now - self.last_settle > 600:
