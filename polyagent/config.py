@@ -91,6 +91,20 @@ class Config:
     smart_per_wallet_pseudo: float = 6.0
     smart_min_wallets: int = 2
 
+    # --- liquidity-reward market making (paper) --------------------------------
+    mm_capital_per_market: float = 250.0  # YES bid + NO bid notional per market
+    mm_max_markets: int = 8
+    mm_spread_frac: float = 0.5  # quote at this fraction of the reward band from mid
+    mm_max_inventory_usd: float = 150.0  # stop bidding a side once it holds this much
+    mm_vol_window_sec: int = 300
+    mm_vol_pull: float = 0.03  # pull quotes if mid ranges more than this inside the window
+    mm_min_hours_to_close: float = 48.0
+    mm_mid_min: float = 0.10
+    mm_mid_max: float = 0.90
+    mm_cycle_sec: int = 15
+    mm_reselect_minutes: int = 15
+    mm_universe: int = 400  # markets scanned for reward pools
+
     # --- loop cadence -------------------------------------------------------
     scan_interval_sec: int = 60
     markets_per_scan: int = 150

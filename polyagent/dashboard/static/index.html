@@ -63,6 +63,8 @@
     <div class="kpi"><div class="label">Drawdown</div><div class="val" id="dd">—</div></div>
     <div class="kpi"><div class="label">Cash</div><div class="val" id="cash">—</div></div>
     <div class="kpi"><div class="label">Fees paid</div><div class="val" id="fees">—</div></div>
+    <div class="kpi"><div class="label">Rewards today (accruing)</div><div class="val" id="rwtoday">—</div></div>
+    <div class="kpi"><div class="label">Rewards paid</div><div class="val" id="rwpaid">—</div></div>
   </div>
   <div id="lasterr" class="err"></div>
 
@@ -131,6 +133,8 @@ async function refresh() {
     setKpi("dd", (s.drawdown * 100).toFixed(2) + "%");
     setKpi("cash", usd(s.cash));
     setKpi("fees", usd(s.fees_paid));
+    setKpi("rwtoday", usd(s.rewards_today || 0));
+    setKpi("rwpaid", usd(s.rewards_paid || 0));
     $("lasterr").textContent = s.last_error ? "Last cycle error: " + s.last_error.error : "";
     drawChart(eq);
     $("positions").innerHTML = pos.length ? pos.map(p => `<tr><td class="q">${esc(p.question)}</td><td>${esc(p.outcome)}</td>

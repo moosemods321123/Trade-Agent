@@ -245,6 +245,39 @@ configuration that lost 14% out of sample.
 
 ---
 
+## Liquidity-reward market making (paper)
+
+The directional strategies showed no edge, so the default service is a different business:
+**getting paid to provide liquidity**. Polymarket pays makers a daily reward pool per market
+(about $57k/day across ~257 markets when checked). The payout depends on quoting tightly on
+both sides, not on predicting outcomes.
+
+```bash
+python -m polyagent mm --once   # one cycle, prints the quote book
+python -m polyagent mm          # run forever (paper only, by design)
+```
+
+How it works (`polyagent/mm/`):
+
+- **Selection:** scans reward markets and scores hypothetical quotes against the live book with the published formula, `S = ((v − s)/v)² × size`, two-sided `Qmin` with c = 3. It keeps the markets with the best estimated reward for the capital, and allocates collateral in that order.
+- **Quotes:** a YES bid at `mid − s` and a NO bid at `(1 − mid) − s` inside the reward band. A filled pair is a complete set bought for less than $1, and it is **merged** straight back into $1.
+- **Fills (paper):** resting bids fill only from the real public trade tape. Trades through our price fill us. Trades at our price fill us only after the displayed queue ahead of us is consumed. Taker buys of the complement fill us via minting. Adverse fills are therefore always counted.
+- **Guards:** quotes are pulled when the mid moves > 3¢ within 5 min, within 48 h of close, outside 0.10–0.90, or when the book is too wide. Once one side's inventory exceeds $150, only the side that completes sets is quoted. Drawdown, daily-loss and kill-switch handling are shared with the main agent.
+- **Rewards:** accrued every cycle from our estimated share and credited at the UTC day roll, with Polymarket's $1 minimum. They appear on the dashboard as *Rewards today (accruing)* and *Rewards paid*.
+
+**P&L = rewards + spread on merged sets − losses on unhedged inventory when prices move.**
+The first two terms are measurable now. The third only shows up over time and is the one that
+kills market makers. MM_RESULTS_PLACEHOLDER
+
+Approximations to keep in mind:
+
+- Competitors are scored as one aggregate maker from the visible book.
+- Queue position ignores other makers' cancellations.
+- Polymarket's per-minute sampling is approximated per cycle.
+- Live quoting (post-only GTC orders, on-chain merge and redeem) is deliberately not wired up. The class refuses `POLY_MODE=live`. Run it in paper mode for weeks first.
+
+---
+
 ## Risk controls
 
 | Control | Where | Action |

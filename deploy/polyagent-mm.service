@@ -1,0 +1,23 @@
+[Unit]
+Description=PolyAgent paper liquidity-reward market maker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=polyagent
+WorkingDirectory=/opt/polyagent
+EnvironmentFile=/opt/polyagent/.env
+ExecStart=/opt/polyagent/.venv/bin/python -m polyagent mm
+Restart=always
+RestartSec=10
+# crash-loop guard: stop restarting after 10 failures in 10 minutes
+StartLimitIntervalSec=600
+StartLimitBurst=10
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/polyagent/data
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

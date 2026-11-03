@@ -3,4 +3,4 @@ Description=PolyAgent heartbeat watchdog (restarts the agent if its heartbeat go
 
 [Service]
 Type=oneshot
-ExecStart=/bin/sh -c 'curl -fsS http://127.0.0.1:8080/healthz >/dev/null || systemctl restart polyagent'
+ExecStart=/bin/sh -c 'curl -fsS http://127.0.0.1:8080/healthz >/dev/null || systemctl restart polyagent-mm'

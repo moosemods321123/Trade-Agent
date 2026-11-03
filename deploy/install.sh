@@ -15,6 +15,8 @@ chown -R polyagent:polyagent "$APP"
 chmod 600 "$APP/.env"
 cp deploy/*.service deploy/*.timer /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable --now polyagent polyagent-dashboard polyagent-watchdog.timer polyagent-report.timer
-echo "Installed. Edit $APP/.env, then: systemctl restart polyagent"
+# The directional agent (polyagent.service) showed no out-of-sample edge, so the market
+# maker runs by default. Never run both against the same database.
+systemctl enable --now polyagent-mm polyagent-dashboard polyagent-watchdog.timer polyagent-report.timer
+echo "Installed. Edit $APP/.env, then: systemctl restart polyagent-mm"
 echo "Dashboard listens on 127.0.0.1:8080 - reach it with: ssh -L 8080:127.0.0.1:8080 <vps>"

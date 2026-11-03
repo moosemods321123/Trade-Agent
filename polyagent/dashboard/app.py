@@ -31,6 +31,10 @@ def create_app(cfg: Config, db: Database | None = None) -> FastAPI:
         start = db.get_state("starting_capital", cfg.starting_capital)
         hb = db.get_state("heartbeat") or {}
         realized = db.one("SELECT COALESCE(SUM(realized_pnl),0) r, COALESCE(SUM(fee),0) f, COUNT(*) n FROM fills")
+        today = time.strftime("%Y-%m-%d", time.gmtime())
+        rw = db.one("SELECT COALESCE(SUM(accrued),0) a FROM mm_rewards WHERE day=?", (today,))
+        paid = db.one("SELECT COALESCE(SUM(size),0) p FROM fills WHERE side='REWARD'")
+        quotes = db.one("SELECT COUNT(*) n FROM mm_quotes WHERE price IS NOT NULL")
         open_orders = db.one("SELECT COUNT(*) n FROM orders WHERE status IN ('OPEN','PENDING')")["n"]
         return {
             "mode": hb.get("mode", cfg.mode),
@@ -43,6 +47,7 @@ def create_app(cfg: Config, db: Database | None = None) -> FastAPI:
             "drawdown": snap["drawdown"] if snap else 0.0,
             "realized_pnl": realized["r"], "fees_paid": realized["f"], "n_fills": realized["n"],
             "open_orders": open_orders,
+            "rewards_today": rw["a"], "rewards_paid": paid["p"], "live_quotes": quotes["n"],
             "heartbeat_age_sec": round(time.time() - hb["ts"], 1) if hb.get("ts") else None,
             "cycle": hb.get("cycle"),
             "halt": db.get_state("halt"),
@@ -61,7 +66,7 @@ def create_app(cfg: Config, db: Database | None = None) -> FastAPI:
     def trades(limit: int = 100):
         return db.query(
             "SELECT f.ts, f.side, f.price, f.size, f.fee, f.realized_pnl, f.question, f.outcome, "
-            "f.token_id, o.strategy, o.mode FROM fills f LEFT JOIN orders o ON o.id=f.order_id "
+            "f.token_id, COALESCE(o.strategy, f.strategy) AS strategy, o.mode FROM fills f LEFT JOIN orders o ON o.id=f.order_id "
             "ORDER BY f.ts DESC LIMIT ?", (min(limit, 1000),))
 
     @app.get("/api/positions")
@@ -74,6 +79,10 @@ def create_app(cfg: Config, db: Database | None = None) -> FastAPI:
             mark = r["mark"] if r["mark"] is not None else r["avg_cost"]
             r["unrealized"] = r["size"] * (mark - r["avg_cost"])
         return rows
+
+    @app.get("/api/quotes")
+    def quotes():
+        return db.query("SELECT * FROM mm_quotes ORDER BY pool_per_day DESC, condition_id, side")
 
     @app.get("/api/signals")
     def signals(limit: int = 50):

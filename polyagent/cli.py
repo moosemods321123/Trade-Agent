@@ -28,6 +28,18 @@ def cmd_run(cfg: Config, args) -> None:
         agent.run_forever()
 
 
+def cmd_mm(cfg: Config, args) -> None:
+    from .mm.maker import MarketMaker
+
+    mm = MarketMaker(cfg)
+    if args.once:
+        mm.cycle()
+        for r in mm.db.query("SELECT * FROM mm_quotes"):
+            print(r)
+    else:
+        mm.run_forever()
+
+
 def cmd_dashboard(cfg: Config, args) -> None:
     import uvicorn
 
@@ -147,6 +159,8 @@ def main(argv: list[str] | None = None) -> None:
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run")
     r.add_argument("--once", action="store_true")
+    mmp = sub.add_parser("mm", help="paper liquidity-reward market maker")
+    mmp.add_argument("--once", action="store_true")
     d = sub.add_parser("dashboard")
     d.add_argument("--host")
     d.add_argument("--port", type=int)
@@ -172,7 +186,7 @@ def main(argv: list[str] | None = None) -> None:
     args = ap.parse_args(argv)
     cfg = Config.load(args.env)
     _setup_logging(cfg.log_level)
-    {"run": cmd_run, "dashboard": cmd_dashboard, "wallets": cmd_wallets, "backtest": cmd_backtest,
+    {"run": cmd_run, "mm": cmd_mm, "dashboard": cmd_dashboard, "wallets": cmd_wallets, "backtest": cmd_backtest,
      "scan": cmd_scan, "study": cmd_study, "report": cmd_report, "kill": cmd_kill, "resume": cmd_resume}[args.cmd](cfg, args)
 
 

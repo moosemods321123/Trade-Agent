@@ -185,6 +185,28 @@ CREATE TABLE IF NOT EXISTS news_items (
     matched    TEXT
 );
 
+CREATE TABLE IF NOT EXISTS mm_quotes (
+    condition_id TEXT,
+    question     TEXT,
+    side         TEXT,
+    price        REAL,
+    size         REAL,
+    queue_ahead  REAL,
+    pool_per_day REAL,
+    paused       TEXT,
+    ts           REAL
+);
+
+CREATE TABLE IF NOT EXISTS mm_rewards (
+    day          TEXT,
+    condition_id TEXT,
+    accrued      REAL DEFAULT 0,
+    seconds      REAL DEFAULT 0,
+    share_sum    REAL DEFAULT 0,
+    paid         INTEGER DEFAULT 0,
+    PRIMARY KEY (day, condition_id)
+);
+
 CREATE TABLE IF NOT EXISTS system_state (
     key   TEXT PRIMARY KEY,
     value TEXT
@@ -202,6 +224,12 @@ class Database:
         self.conn.execute("PRAGMA synchronous=NORMAL")
         self.conn.execute("PRAGMA foreign_keys=ON")
         self.conn.executescript(SCHEMA)
+        self._migrate()
+
+    def _migrate(self) -> None:
+        cols = {r[1] for r in self.conn.execute("PRAGMA table_info(fills)")}
+        if "strategy" not in cols:
+            self.conn.execute("ALTER TABLE fills ADD COLUMN strategy TEXT")
 
     @contextmanager
     def tx(self) -> Iterator[sqlite3.Connection]:
