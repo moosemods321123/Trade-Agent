@@ -1,0 +1,9 @@
+[Unit]
+Description=PolyAgent daily performance report
+
+[Service]
+Type=oneshot
+User=polyagent
+WorkingDirectory=/opt/polyagent
+EnvironmentFile=/opt/polyagent/.env
+ExecStart=/opt/polyagent/.venv/bin/python -m polyagent report

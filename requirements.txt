@@ -1,0 +1,6 @@
+httpx>=0.27
+numpy>=1.26
+fastapi>=0.110
+uvicorn>=0.29
+py-clob-client>=0.34   # only needed for live trading
+pytest>=8

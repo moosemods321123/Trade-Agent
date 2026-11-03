@@ -1,0 +1,19 @@
+[Unit]
+Description=PolyAgent dashboard
+After=network-online.target
+
+[Service]
+Type=simple
+User=polyagent
+WorkingDirectory=/opt/polyagent
+EnvironmentFile=/opt/polyagent/.env
+ExecStart=/opt/polyagent/.venv/bin/python -m polyagent dashboard
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/polyagent/data
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
