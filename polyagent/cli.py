@@ -40,6 +40,25 @@ def cmd_mm(cfg: Config, args) -> None:
         mm.run_forever()
 
 
+def cmd_meme(cfg: Config, args) -> None:
+    from .meme.trader import MemeTrader
+
+    t = MemeTrader(cfg)
+    if args.once:
+        t.cycle()
+        print(t.db.query("SELECT COUNT(*) tokens, SUM(rug_score IS NOT NULL) rugchecked FROM meme_tokens"))
+    else:
+        t.run_forever()
+
+
+def cmd_meme_backtest(cfg: Config, args) -> None:
+    from .db import Database
+    from .meme.backtest import load, walk_forward
+
+    data = load(Database(cfg.db_path))
+    print(json.dumps(walk_forward(data, start_equity=args.equity), indent=2, default=str))
+
+
 def cmd_dashboard(cfg: Config, args) -> None:
     import uvicorn
 
@@ -161,6 +180,10 @@ def main(argv: list[str] | None = None) -> None:
     r.add_argument("--once", action="store_true")
     mmp = sub.add_parser("mm", help="paper liquidity-reward market maker")
     mmp.add_argument("--once", action="store_true")
+    mp = sub.add_parser("meme", help="paper memecoin trader + data collector")
+    mp.add_argument("--once", action="store_true")
+    mb = sub.add_parser("meme-backtest", help="walk-forward on collected memecoin data")
+    mb.add_argument("--equity", type=float, default=1000.0)
     d = sub.add_parser("dashboard")
     d.add_argument("--host")
     d.add_argument("--port", type=int)
@@ -186,7 +209,7 @@ def main(argv: list[str] | None = None) -> None:
     args = ap.parse_args(argv)
     cfg = Config.load(args.env)
     _setup_logging(cfg.log_level)
-    {"run": cmd_run, "mm": cmd_mm, "dashboard": cmd_dashboard, "wallets": cmd_wallets, "backtest": cmd_backtest,
+    {"run": cmd_run, "meme": cmd_meme, "meme-backtest": cmd_meme_backtest, "mm": cmd_mm, "dashboard": cmd_dashboard, "wallets": cmd_wallets, "backtest": cmd_backtest,
      "scan": cmd_scan, "study": cmd_study, "report": cmd_report, "kill": cmd_kill, "resume": cmd_resume}[args.cmd](cfg, args)
 
 
