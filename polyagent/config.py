@@ -107,7 +107,7 @@ class Config:
 
     # --- memecoin paper trader ----------------------------------------------------
     meme_cycle_sec: int = 60
-    meme_discovery_pages: int = 2
+    meme_discovery_pages: int = 1
     meme_max_new_per_cycle: int = 25
     meme_track_hours: float = 24.0
     meme_tx_cost_usd: float = 0.15  # Solana base + priority fee per swap (competitive fees can be higher)

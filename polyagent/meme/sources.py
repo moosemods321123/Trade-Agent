@@ -61,7 +61,7 @@ class Quote:
 
 class MemeSources:
     def __init__(self, timeout: float = 15.0):
-        self.gecko = HttpClient("https://api.geckoterminal.com/api/v2", timeout, 3, min_interval=2.2)  # ~30/min
+        self.gecko = HttpClient("https://api.geckoterminal.com/api/v2", timeout, 0, min_interval=4.0)  # free tier: fail fast, no retry storms
         self.dex = HttpClient("https://api.dexscreener.com", timeout, 3, min_interval=0.25)
         self.rug = HttpClient("https://api.rugcheck.xyz/v1", timeout, 2, min_interval=1.0)
         self.jup = HttpClient("https://lite-api.jup.ag/swap/v1", timeout, 2, min_interval=1.1)

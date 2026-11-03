@@ -284,6 +284,48 @@ Approximations to keep in mind:
 - Polymarket's per-minute sampling is approximated per cycle.
 - Live quoting (post-only GTC orders, on-chain merge and redeem) is deliberately not wired up. The class refuses `POLY_MODE=live`. Run it in paper mode for weeks first.
 
+## Memecoin paper trader (Solana)
+
+```bash
+python -m polyagent meme --once      # one cycle
+python -m polyagent meme             # collect + paper trade forever (use its own POLY_DB_PATH)
+python -m polyagent meme-backtest    # walk-forward on whatever has been collected
+```
+
+**Why it collects its own data.** Free memecoin APIs list coins that still exist. Coins that
+rugged and vanished are mostly missing, so any "historical" backtest built from them is
+survivorship-biased and flattering. The collector records **every** new Solana pool it sees on
+GeckoTerminal, with its RugCheck report, and tracks it on DexScreener for 24 h. Young coins are
+polled every cycle, older ones less often, and dead ones are tracked until they are marked dead.
+That dataset is what `meme-backtest` uses.
+
+**Strategy** (`polyagent/meme/strategy.py`, shared by the paper trader and the backtester):
+
+- **Rug filter:** a RugCheck report is required, the normalised risk score must be ≤ 60, and any hard risk disqualifies the coin:
+  - mint or freeze authority still enabled
+  - a single holder or the top 10 holding most of the supply
+  - LP unlocked
+  - copycat token
+  - a creator who has rugged before
+- **Entry:** the coin is 20–240 minutes old (skipping the first-minutes snipe and dump), with liquidity ≥ $20k, FDV between $50k and $5M, 1h volume ≥ $20k, buys outnumbering sells over 5 minutes, and a +10% to +300% move over 1h. Each coin is traded at most once.
+- **Execution (paper):** a real Jupiter USDC→token quote, rejected if slippage against a $1 probe quote exceeds 3%, *and* rejected unless a round-trip sell quote returns ≥ 85% of the stake (an anti-honeypot check). A $0.15 per-swap network and priority fee is charged.
+- **Valuation:** every cycle, positions are valued with a Jupiter sell quote for the full amount, which is what you could actually get. No sell route for three cycles means the value goes to zero and the position is written off.
+- **Exits:** sell half at 2×, then trail the rest with a 35% drawdown from peak. Stop-loss at 0.6×, time exit at 12 h.
+- **Sizing:** 1% of equity per coin, at most 8 open, with the 20% cash reserve, drawdown limits and kill switch shared with the main agent. On a risk halt, everything is sold.
+
+The paper trader refuses `POLY_MODE=live`. Signing real Jupiter swaps is deliberately not implemented.
+
+**First run (2026-11-03, ~70 minutes, $1,000 paper bankroll):**
+
+- 734 new Solana pools discovered. Only 46 ever reached $5k of liquidity; the rest were dust.
+- Of those 46, an hour later: median price **0.01×** first seen, 72% down more than half, 48% with liquidity gone entirely, and **4% up more than 2×**.
+- Most coins failed the rug filter or the liquidity and momentum gates. One trade passed everything: $10 into "Pog", stopped out at 0.54× (−$4.76). The price gapped through the 0.6× stop.
+- Walk-forward backtest: **not enough data yet** (2 trades on the training half). It needs days to weeks of collection before it can say anything.
+
+The base rates are the point. A random new coin is a lottery ticket with a poor expected value. The
+question this bot answers over time is whether the filter can find the 4% often enough, and early
+enough, to beat that. Nothing so far says it can.
+
 ---
 
 ## Risk controls
