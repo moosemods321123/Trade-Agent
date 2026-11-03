@@ -211,7 +211,37 @@ Data is cached in `data/backtest_cache.json`, so reruns are reproducible offline
 
 ## Measured results
 
-RESULTS_PLACEHOLDER
+All numbers below come from runs made on 2026-11-03 against real Polymarket data. None are
+simulated or adjusted, and the JSON outputs reproduce them (`data/` is git-ignored, so rerun the
+commands). **Short version: no strategy here has shown an edge after costs out of sample.**
+
+**Dataset.** 400 resolved binary markets that closed 2026-05-01 → 2026-10-31, chosen by volume.
+Each has hourly YES prices for up to 60 days before resolution, plus every public trade ≥ $200
+(Data API v2). Train is the first 240 markets by resolution time, test the last 160.
+
+**The market is hard to beat.** Brier score of the market price 24 h before resolution: **0.114**
+(a coin flip scores 0.25). There is little calibration error left for an independent estimate to exploit.
+
+| Test | Result | Verdict |
+|---|---|---|
+| Complete-set arbitrage, live scan of 90 eligible markets | every YES+NO pair cost **$1.005–$1.120** per set after fees and depth | none available |
+| Signal study: does net flow of point-in-time "reliable" wallets predict outcome − price? (`polyagent study`) | +0.025 per decision, **t = 0.56** over 49 events | no detectable signal |
+| Same study using *all* wallets | +0.001, t = 0.05 over 181 events | no signal |
+| Smart-money walk-forward (72 parameter sets chosen on train) | train **+19.7%** (18 trades) → test **−14.4%** (15 trades, 13% win rate, 95% CI of mean trade return [−100%, −34%]) | **overfit**. The best in-sample settings lost money out of sample, and out of sample its probabilities were worse than the market's (Brier 0.165 vs 0.123) |
+| Trend walk-forward | train +10.7% (7 trades, CI spans negative) → test +2.9% (**2 trades**) | too few trades to mean anything |
+| Live paper run, 3 cycles | 34 trend views passed the R² gate, all rejected (edge after fees < 3¢). 0 smart-money views. 0 trades | the gates work as designed |
+
+**A cautionary detour.** An early ad-hoc version of the signal study showed t ≈ 3.8. That was a
+look-ahead leak in the diagnostic script: it reused a wallet ranking computed at a *later* time
+whenever it moved back to an earlier market. With a strictly point-in-time ranking (the engine's
+`weights_at`), the effect disappears. If you extend this code, keep the point-in-time guarantees.
+Leaks are the usual source of backtests that look too good.
+
+What this means in practice: with the shipped defaults (strict wallet gates, prior concentration
+200, two-wallet agreement), the smart-money estimator almost never fires, and when it does it moves
+the price by about a cent. That is too little to trade on. The agent sits in cash, which, given the
+evidence above, is the right answer. Loosening the gates to "make it trade" is exactly the overfit
+configuration that lost 14% out of sample.
 
 ---
 
